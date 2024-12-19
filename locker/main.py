@@ -1,11 +1,19 @@
 from typing import Any, List
+import os
 
 from flask import Flask, request
 
 app = Flask(__name__)
 
+
+def check_auth(request):
+    if not request.authorization or not request.authorization.token == os.getenv('AUTH_TOKEN'):
+        raise PermissionError("Invalid token")
+
+
 @app.route("/list_tools")
 def list_tools():
+    check_auth(request)
     return [{
         "name": "get-available-lockers-from-zone",
         "description": "Get available lockers",
@@ -41,6 +49,7 @@ def return_error_response(error: str, isError: bool = True):
 
 @app.route("/call_tool", methods=['POST'])
 def call_tool():
+    check_auth(request)
     request_json = request.json
     name = request_json["name"]
     arguments = request_json["arguments"]
