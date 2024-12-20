@@ -57,7 +57,7 @@ def call_tool():
 
     if name == "show-photo":
         return custom_response("success", {
-            "image_url": ["https://www.google.com/logos/doodles/2021/doodle-champion-island-games-begin-6753651837108462.2-2xa.gif"]
+            "image_url": "https://speaak.s3.us-east-1.amazonaws.com/maya.jpg"
         })
     else:
         return error_response("Invalid tool")
