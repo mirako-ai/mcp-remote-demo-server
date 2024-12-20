@@ -1,6 +1,7 @@
 from flask import Flask, request
 from typing import Any, List
 import httpx
+import os
 
 NWS_API_BASE = "https://api.weather.gov"
 USER_AGENT = "weather-app/1.0"
@@ -83,20 +84,23 @@ def format_alert(feature: dict) -> str:
     )
 
 
-def return_response(content: List[Any], isError: bool = False):
+def message_response(message: str):
     return {
-        "isError": isError,
-        "content": content,
+        "status": "success",
+        "message": message
     }
 
 
-def return_error_response(error: str, isError: bool = True):
+def custom_response(message: str, custom: dict):
+    response = message_response(message)
+    response.update(custom)
+    return response
+
+
+def error_response(error: str):
     return {
-        "isError": isError,
-        "content": [{
-            "type": "text",
-            "text": error,
-        }],
+        "status": "failed",
+        "message": error
     }
 
 
@@ -109,59 +113,44 @@ async def call_tool():
     profile = request_json["profile"] # profile.id and profile.metis_id will be provided
 
     if not arguments:
-        raise return_error_response("Missing arguments")
+        raise error_response("Missing arguments")
 
     if name == "get-alerts":
         state = arguments.get("state")
         if not state:
-            raise return_error_response("Missing state parameter")
+            raise error_response("Missing state parameter")
 
         # Convert state to uppercase to ensure consistent format
         state = state.upper()
         if len(state) != 2:
-            raise return_error_response("State must be a two-letter code (e.g. CA, NY)")
+            raise error_response("State must be a two-letter code (e.g. CA, NY)")
 
         async with httpx.AsyncClient() as client:
             alerts_url = f"{NWS_API_BASE}/alerts?area={state}"
             alerts_data = await make_nws_request(client, alerts_url)
 
             if not alerts_data:
-                return return_response([{
-                    "type": "text",
-                    "text": "Failed to retrieve alerts data"
-                }])
+                return error_response("Failed to retrieve alerts data")
 
             features = alerts_data.get("features", [])
             if not features:
-                return return_response([{
-                    "type": "text",
-                    "text": f"No active alerts for {state}"
-                }])
+                return error_response(f"No active alerts for {state}")
 
             # Format each alert into a concise string
             formatted_alerts = [format_alert(feature) for feature in features[:20]]  # only take the first 20 alerts
             alerts_text = f"Active alerts for {state}:\n\n" + "\n".join(formatted_alerts)
 
-            return return_response([{
-                "type": "text",
-                "text": alerts_text
-            }])
+            return error_response(alerts_text)
     elif name == "get-forecast":
         try:
             latitude = float(arguments.get("latitude"))
             longitude = float(arguments.get("longitude"))
         except (TypeError, ValueError):
-            return return_response([{
-                "type": "text",
-                "text": "Invalid coordinates. Please provide valid numbers for latitude and longitude."
-            }])
+            return error_response("Invalid coordinates. Please provide valid numbers for latitude and longitude.")
 
         # Basic coordinate validation
         if not (-90 <= latitude <= 90) or not (-180 <= longitude <= 180):
-            return return_response([{
-                "type": "text",
-                "text": "Invalid coordinates. Latitude must be between -90 and 90, longitude between -180 and 180."
-            }])
+            return error_response("Invalid coordinates. Latitude must be between -90 and 90, longitude between -180 and 180.")
 
         async with httpx.AsyncClient() as client:
             # First get the grid point
@@ -171,37 +160,25 @@ async def call_tool():
             points_data = await make_nws_request(client, points_url)
 
             if not points_data:
-                return return_response([{
-                    "type": "text",
-                    "text": f"Failed to retrieve grid point data for coordinates: {latitude}, {longitude}. This location may not be supported by the NWS API (only US locations are supported)."
-                }])
+                return error_response(f"Failed to retrieve grid point data for coordinates: {latitude}, {longitude}. This location may not be supported by the NWS API (only US locations are supported).")
 
             # Extract forecast URL from the response
             properties = points_data.get("properties", {})
             forecast_url = properties.get("forecast")
 
             if not forecast_url:
-                return return_response([{
-                    "type": "text",
-                    "text": "Failed to get forecast URL from grid point data"
-                }])
+                return error_response("Failed to get forecast URL from grid point data")
 
             # Get the forecast
             forecast_data = await make_nws_request(client, forecast_url)
 
             if not forecast_data:
-                return return_response([{
-                    "type": "text",
-                    "text": "Failed to retrieve forecast data"
-                }])
+                return error_response("Failed to retrieve forecast data")
 
             # Format the forecast periods
             periods = forecast_data.get("properties", {}).get("periods", [])
             if not periods:
-                return return_response([{
-                    "type": "text",
-                    "text": "No forecast periods available"
-                }])
+                return error_response("No forecast periods available")
 
             # Format each period into a concise string
             formatted_forecast = []
@@ -217,14 +194,11 @@ async def call_tool():
 
             forecast_text = f"Forecast for {latitude}, {longitude}:\n\n" + "\n".join(formatted_forecast)
 
-            return return_response([{
-                "type": "text",
-                "text": forecast_text
-            }])
+            return message_response(forecast_text)
     else:
-        return return_error_response("Invalid tool")
+        return error_response("Invalid tool")
 
 
 
 if __name__ == '__main__':
-   app.run(port=5001)
+   app.run(port=os.getenv("PORT", 8080))

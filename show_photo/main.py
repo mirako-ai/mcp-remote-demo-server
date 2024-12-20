@@ -15,19 +15,14 @@ def list_tools():
     check_auth(request)
     return [
         {
-            "name": "get-available-lockers-from-zone",
-            "description": "Get available lockers",
+            "name": "show-photo",
+            "description": "Show photo",
             "parameters": {
                 "properties": {
-                    "zone": {
-                        "title": "zone",
-                        "type": "string",
-                        "description": "Zone code (valid codes are: A, B, C)"
-                    },
                 },
-                "required": ["zone"],
+                "required": [],
                 "type": "object",
-            },
+            }
         }
     ]
 
@@ -60,23 +55,10 @@ def call_tool():
     arguments = request_json["arguments"]
     profile = request_json["profile"] # profile.id and profile.metis_id will be provided
 
-    if name == "get-available-lockers-from-zone":
-        if not arguments:
-            raise ValueError("Missing arguments")
-
-        zone = arguments.get("zone")
-        if not zone:
-            raise ValueError("Missing zone parameter")
-
-        if zone == "A":
-            text = "A100"
-        elif zone == "B":
-            text = "[B201,B211]"
-        elif zone == "C":
-            text = "None"
-        else:
-            return error_response("Invalid zone")
-        return message_response(text)
+    if name == "show-photo":
+        return custom_response("success", {
+            "image_url": ["https://www.google.com/logos/doodles/2021/doodle-champion-island-games-begin-6753651837108462.2-2xa.gif"]
+        })
     else:
         return error_response("Invalid tool")
 
