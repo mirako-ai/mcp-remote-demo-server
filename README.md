@@ -114,3 +114,13 @@ This API will be called to execute a tool
 }
 ```
 
+## Last step
+Specify your url endpoint and authToken at maskott tools field 
+```json
+[
+  {
+    "url": "https://your-domain.com[:port]", 
+    "authToken": "xxxxxxxxxxxxxxxx"
+  }
+]
+```
