@@ -3,124 +3,79 @@
 This project contains 3 demos:
 
 ### 1. locker
-* This is a simple demo that offers a tool called `get-available-lockers-from-zone`
+* This is a simple demo that offers a tool called `get_available_lockers_from_zone`
 , with a parameter `zone` required.
 * The result of this demo is hardcoded for simplicity 
 
 ### 2. weather
 * This is a demo which fetch the weather data from `api.weather.gov`
-* There are 2 tools provided `get-alerts` `get-forecast`
+* There are 2 tools provided `get_alerts` `get_forecast`
 * This API only works for querying weather of US locations
 
 ### 3. show_photo
-* This is a demo that offers a tool called `show-photo` demonstrating an image response
+* This is a demo that offers a tool called `show_photo` demonstrating an image response
 * The result of this demo is hardcoded for simplicity 
 
-## API specifications
-
-In order to be used by Metis, the remote tool server <strong>MUST</strong> follow below specification.
-
-### Authentication
-The `authToken` specified in Metis profile will be included in the header of ALL API calls as:
+## Authentication
+The `authToken` specified in profile will be included in the header of ALL API calls as:
 ```
 Authorization: Bearer [authToken]
 ```
-you may call the `check_auth(request)` method in the samples to verify the authToken in your APIs 
-
-### API 1: list_tools
-This API should return a list of tools
-* path: `list_tools`
-* method: `GET`
-* content type: `application/json`
-* response: array of tool object
-  * tool object properties:
-    * `name`
-      * the name of your tool, <strong>MUST</strong> be unique within ALL tools (including Metis defaults)
-    * `description`
-      * a description of your tool, what does your tool do, to let the LLM knows how and when to use your tool
-    * `parameters`
-      * object, the parameters that your tool needs
-      * `type`
-        * `object`
-      * `properties`
-        * object of parameters
-          * `title`
-            * name of your parameter
-          * `type`
-            * type, `string`, `number`, etc
-          * `description`
-            * a description of your parameter
-      * `required`
-        * array of string, the list of parameters that are mandatory
-#### Response Sample
-```json
-{
-    "name": "get-available-lockers-from-zone",
-    "description": "Get available lockers",
-    "parameters": {
-        "properties": {
-            "zone": {
-                "title": "zone",
-                "type": "string",
-                "description": "Zone code (valid codes are: A, B, C)"
-            }
-        },
-        "required": ["zone"],
-        "type": "object"
-    }
-}
+you may use the `AuthTokenAuthProvider` class as your AuthProvider like this:
+```
+mcp = FastMCP(name=__name__, auth=AuthTokenAuthProvider([auth_token]))
 ```
 
-### API 2: `call_tool`
-This API will be called to execute a tool
-* path: `call_tool`
-* method: `POST`
-* content type: `application/json`
-* request body:
-  * `name`
-    * tool name to be called
-  * `arguments`
-    * the parameters object
-  * `profile`
-    * `id`
-      * the profile ID currently calling this tool
-    * `metis_id` 
-      * the metis ID currently calling this tool
-* response:
-  * `status`
-    * `success` or `fail`
-  * `message`
-    * the response of the tool
-  * `image_url`
-    * optional, the url of image to be shown
-  * `operation`
-    * optional, the custom operation to be executed 
-#### Request Sample
-```json
-{
-    "name": "get-available-lockers-from-zone",
-    "arguments": { "zone": "B" },
-    "profile": { 
-      "id": "6d1f66af-f0b0-4630-999d-633df8259372", 
-      "metis_id": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-    }
-}
+## Profile ID
+profile ID will be included in the header, you may call the `get_profile_id(ctx)` method in the samples to get the profile ID if needed
+
+## Supported transport options
+`streamable-http`
+
+## Supported MCP Components
+`Tool`
 ```
-#### Response Sample
-```json
-{
-    "status": "success",
-    "message": "[B201,B211]"
-}
+@mcp.tool()
+def addition(
+    a: Annotated[int, Field(description="first number to be added")],
+    b: Annotated[int, Field(description="second number to be added")],
+    ctx: Context
+) -> dict:
+    """Add 2 numbers"""
+    # profile_id = get_profile_id(ctx)
+    return a+b
 ```
 
-## Last step
-Specify your url endpoint and authToken at maskott tools field 
-```json
+## Return type
+Supported return types:
+* str
+  * return the response directly as str for text responses
+
+### Operation
+Return a dict for operations, the operation name should be specified in `operation` key
+
+#### Show Image
+You should return an publicly accessible URL in `image_url` in order to show an image, format as below:
+```
+return {"operation": "show_image", "image_url": "https://your-domain.com/image.jpg"}
+```
+
+## How to setup your tool in profile
+You may setup multiple MCP tool servers in a profile
+```
 [
   {
-    "url": "https://your-domain.com[:port]", 
-    "authToken": "xxxxxxxxxxxxxxxx"
+    "url":"http://localhost:8080/mcp/",
+    "authToken":"abc"
+  },
+  {
+    "url":"http://localhost:8081/mcp/",
+    "authToken":"abcd"
   }
 ]
 ```
+| Parameter | Type | Required | Description |
+| -------- | ------- | ------- | ------- |
+| url | str | true | the enpoint URL |
+| authToken | str | if `apiKey` is not provided | Auth Token, will be passed in `Authorization` header with the “Bearer” scheme |
+| apiKey | str | if `authToken` is not provided | API Key, will be passed in `X-API-KEY` header |

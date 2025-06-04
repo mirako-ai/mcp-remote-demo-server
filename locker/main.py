@@ -1,86 +1,43 @@
-import os
+import os, sys
+from fastmcp import FastMCP, Context
+from typing import Annotated
+from pydantic import Field
+from enum import Enum
 
-from flask import Flask, request
-
-app = Flask(__name__)
-
-
-def check_auth(request):
-    if not request.authorization or not request.authorization.token == os.getenv('AUTH_TOKEN'):
-        raise PermissionError("Invalid token")
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from auth.auth_provider import AuthTokenAuthProvider
 
 
-@app.route("/list_tools")
-def list_tools():
-    check_auth(request)
-    return [
-        {
-            "name": "get-available-lockers-from-zone",
-            "description": "Get available lockers",
-            "parameters": {
-                "properties": {
-                    "zone": {
-                        "title": "zone",
-                        "type": "string",
-                        "description": "Zone code (valid codes are: A, B, C)"
-                    },
-                },
-                "required": ["zone"],
-                "type": "object",
-            },
-        }
-    ]
+auth_token=os.getenv('AUTH_TOKEN')
+mcp = FastMCP(name=__name__, auth=AuthTokenAuthProvider([auth_token]))
 
 
-def message_response(message: str):
-    return {
-        "status": "success",
-        "message": message
-    }
+def get_profile_id(ctx: Context):
+    return ctx.get_http_request().headers.get('M-PROFILE-ID')
 
 
-def custom_response(message: str, custom: dict):
-    response = message_response(message)
-    response.update(custom)
-    return response
+class Zone(Enum):
+    A = "A"
+    B = "B"
+    C = "C"
 
-
-def error_response(error: str):
-    return {
-        "status": "failed",
-        "message": error
-    }
-
-
-@app.route("/call_tool", methods=['POST'])
-def call_tool():
-    check_auth(request)
-    request_json = request.json
-    name = request_json["name"]
-    arguments = request_json["arguments"]
-    profile = request_json["profile"] # profile.id and profile.metis_id will be provided
-
-    if name == "get-available-lockers-from-zone":
-        if not arguments:
-            raise ValueError("Missing arguments")
-
-        zone = arguments.get("zone")
-        if not zone:
-            raise ValueError("Missing zone parameter")
-
-        if zone == "A":
-            text = "A100"
-        elif zone == "B":
-            text = "[B201,B211]"
-        elif zone == "C":
-            text = "None"
-        else:
-            return error_response("Invalid zone")
-        return message_response(text)
+@mcp.tool()
+def get_available_lockers_from_zone(
+    zone: Annotated[Zone, Field(description="Zone code")],
+    ctx: Context
+) -> str:
+    """Get available lockers"""
+    # profile_id = get_profile_id(ctx)
+    # print(profile_id)
+    if zone == Zone.A:
+        return "A100"
+    elif zone == Zone.B:
+        return "[B201,B211]"
+    elif zone == Zone.C:
+        return "None"
     else:
-        return error_response("Invalid tool")
-
-
+        raise ValueError("Invalid zone")
+    
 
 if __name__ == '__main__':
-   app.run(port=os.getenv("PORT", 8080))
+    mcp.run(transport="streamable-http", port=os.getenv("PORT", 8080))

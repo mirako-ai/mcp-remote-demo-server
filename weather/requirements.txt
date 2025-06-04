@@ -1,2 +1,2 @@
-Flask[async]
+fastmcp==2.6.0
 httpx

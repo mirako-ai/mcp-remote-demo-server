@@ -1,68 +1,26 @@
-import os
+import os, sys
+from fastmcp import FastMCP, Context
 
-from flask import Flask, request
-
-app = Flask(__name__)
-
-
-def check_auth(request):
-    if not request.authorization or not request.authorization.token == os.getenv('AUTH_TOKEN'):
-        raise PermissionError("Invalid token")
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from auth.auth_provider import AuthTokenAuthProvider
 
 
-@app.route("/list_tools")
-def list_tools():
-    check_auth(request)
-    return [
-        {
-            "name": "show-photo",
-            "description": "Show photo",
-            "parameters": {
-                "properties": {
-                },
-                "required": [],
-                "type": "object",
-            }
-        }
-    ]
+auth_token=os.getenv('AUTH_TOKEN')
+mcp = FastMCP(name=__name__, auth=AuthTokenAuthProvider([auth_token]))
 
 
-def message_response(message: str):
-    return {
-        "status": "success",
-        "message": message
-    }
-
-
-def custom_response(message: str, custom: dict):
-    response = message_response(message)
-    response.update(custom)
-    return response
-
-
-def error_response(error: str):
-    return {
-        "status": "failed",
-        "message": error
-    }
-
-
-@app.route("/call_tool", methods=['POST'])
-def call_tool():
-    check_auth(request)
-    request_json = request.json
-    name = request_json["name"]
-    arguments = request_json["arguments"]
-    profile = request_json["profile"] # profile.id and profile.metis_id will be provided
-
-    if name == "show-photo":
-        return custom_response("success", {
-            "image_url": "https://speaak.s3.us-east-1.amazonaws.com/maya.jpg"
-        })
-    else:
-        return error_response("Invalid tool")
-
-
+@mcp.tool()
+def show_photo(
+    ctx: Context
+) -> dict:
+    """Show photo"""
+    # profile_id = get_profile_id(ctx)
+    # print(profile_id)
+    return {"operation": "show_image", "image_url": "https://speaak.s3.us-east-1.amazonaws.com/maya.jpg"}
+    
 
 if __name__ == '__main__':
-   app.run(port=os.getenv("PORT", 8080))
+    mcp.run(transport="streamable-http", port=os.getenv("PORT", 8081))
+
+
+
