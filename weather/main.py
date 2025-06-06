@@ -13,6 +13,10 @@ auth_token=os.getenv('AUTH_TOKEN')
 mcp = FastMCP(name=__name__, auth=AuthTokenAuthProvider([auth_token]))
 
 
+def get_profile_id(ctx: Context):
+    return ctx.get_http_request().headers.get('M-PROFILE-ID')
+
+
 NWS_API_BASE = "https://api.weather.gov"
 USER_AGENT = "weather-app/1.0"
 
@@ -131,4 +135,4 @@ async def get_forecast(
     
 
 if __name__ == '__main__':
-    mcp.run(transport="streamable-http", port=os.getenv("PORT", 8080))
+    mcp.run(transport="streamable-http", host="0.0.0.0", port=os.getenv("PORT", 8080))

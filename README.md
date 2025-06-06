@@ -1,4 +1,4 @@
-# Metis mcp remote tools server demo
+# Mirako mcp remote tools server demo
 
 This project contains 3 demos:
 
@@ -21,8 +21,10 @@ The `authToken` specified in profile will be included in the header of ALL API c
 ```
 Authorization: Bearer [authToken]
 ```
-you may use the `AuthTokenAuthProvider` class as your AuthProvider like this:
+you may use the `AuthTokenAuthProvider` class from [`auth/auth_provider.py`](auth/auth_provider.py) as your AuthProvider like this:
 ```
+from auth.auth_provider import AuthTokenAuthProvider
+
 mcp = FastMCP(name=__name__, auth=AuthTokenAuthProvider([auth_token]))
 ```
 
@@ -33,7 +35,7 @@ profile ID will be included in the header, you may call the `get_profile_id(ctx)
 `streamable-http`
 
 ## Supported MCP Components
-`Tool`
+[`Tool`](https://gofastmcp.com/servers/tools#tools)
 ```
 @mcp.tool()
 def addition(
@@ -79,3 +81,21 @@ You may setup multiple MCP tool servers in a profile
 | url | str | true | the enpoint URL |
 | authToken | str | if `apiKey` is not provided | Auth Token, will be passed in `Authorization` header with the “Bearer” scheme |
 | apiKey | str | if `authToken` is not provided | API Key, will be passed in `X-API-KEY` header |
+
+## Testing
+You may use `tester/main.py` to test your MCP server. Change the `URL`, `Auth Token` and `profile ID` here if needed.
+```
+transport = StreamableHttpTransport(
+    "http://localhost:8080/mcp/",
+    auth=BearerAuth("your auth token"),
+    headers={"M-PROFILE-ID": "your profile ID"},
+)
+```
+
+### Run tester
+```
+python tester.main.py
+```
+
+## CloudRun Sample
+Refer to [`cloudrun-sample/README.md`](cloudrun-sample/README.md)

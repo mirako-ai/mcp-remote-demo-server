@@ -1,1 +1,1 @@
-functions-framework==3.*
+fastmcp==2.6.0

@@ -40,4 +40,4 @@ def get_available_lockers_from_zone(
     
 
 if __name__ == '__main__':
-    mcp.run(transport="streamable-http", port=os.getenv("PORT", 8080))
+    mcp.run(transport="streamable-http", host="0.0.0.0", port=os.getenv("PORT", 8080))

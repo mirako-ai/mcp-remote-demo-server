@@ -9,6 +9,10 @@ auth_token=os.getenv('AUTH_TOKEN')
 mcp = FastMCP(name=__name__, auth=AuthTokenAuthProvider([auth_token]))
 
 
+def get_profile_id(ctx: Context):
+    return ctx.get_http_request().headers.get('M-PROFILE-ID')
+
+
 @mcp.tool()
 def show_photo(
     ctx: Context
@@ -20,7 +24,7 @@ def show_photo(
     
 
 if __name__ == '__main__':
-    mcp.run(transport="streamable-http", port=os.getenv("PORT", 8081))
+    mcp.run(transport="streamable-http", host="0.0.0.0", port=os.getenv("PORT", 8080))
 
 
 
