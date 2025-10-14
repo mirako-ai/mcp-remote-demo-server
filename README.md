@@ -17,9 +17,9 @@ This project contains 3 demos:
 * The result of this demo is hardcoded for simplicity 
 
 ## Authentication
-The `authToken` specified in profile will be included in the header of ALL API calls as:
+The `auth_token` specified in profile will be included in the header of ALL API calls as:
 ```
-Authorization: Bearer [authToken]
+Authorization: Bearer [auth_token]
 ```
 you may use the `AuthTokenAuthProvider` class from [`auth/auth_provider.py`](auth/auth_provider.py) as your AuthProvider like this:
 ```
@@ -68,19 +68,19 @@ You may setup multiple MCP tool servers in a profile
 [
   {
     "url":"http://localhost:8080/mcp/",
-    "authToken":"abc"
+    "auth_token":"abc"
   },
   {
     "url":"http://localhost:8081/mcp/",
-    "authToken":"abcd"
+    "auth_token":"abcd"
   }
 ]
 ```
 | Parameter | Type | Required | Description |
 | -------- | ------- | ------- | ------- |
 | url | str | true | the enpoint URL |
-| authToken | str | if `apiKey` is not provided | Auth Token, will be passed in `Authorization` header with the “Bearer” scheme |
-| apiKey | str | if `authToken` is not provided | API Key, will be passed in `X-API-KEY` header |
+| auth_token | str | if `api_key` is not provided | Auth Token, will be passed in `Authorization` header with the “Bearer” scheme |
+| api_key | str | if `auth_token` is not provided | API Key, will be passed in `X-API-KEY` header |
 
 ## Testing
 You may use `tester/main.py` to test your MCP server. Change the `URL`, `Auth Token` and `profile ID` here if needed.
